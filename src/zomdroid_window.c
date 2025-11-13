@@ -37,7 +37,7 @@ GLFWbool _glfwCreateWindowZomdroid(_GLFWwindow* window,
     fitToSurface(window);
     _glfw.zomdroid.window = window;
 
-    if (g_zomdroid_renderer == GL4ES) {
+    if ((g_zomdroid_renderer == GL4ES) || (g_zomdroid_renderer == NG_GL4ES)) {
 
         if (!_glfwInitEGL())
             return GLFW_FALSE;
