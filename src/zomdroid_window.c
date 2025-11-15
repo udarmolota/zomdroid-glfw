@@ -237,12 +237,12 @@ GLFWbool _glfwRawMouseMotionSupportedZomdroid(void)
 
 void _glfwShowWindowZomdroid(_GLFWwindow* window)
 {
-    NOOP
+    //NOOP
 }
 
 void _glfwRequestWindowAttentionZomdroid(_GLFWwindow* window)
 {
-    UNIMPLEMENTED_API
+    //UNIMPLEMENTED_API
 }
 
 void _glfwHideWindowZomdroid(_GLFWwindow* window)
@@ -252,7 +252,7 @@ void _glfwHideWindowZomdroid(_GLFWwindow* window)
 
 void _glfwFocusWindowZomdroid(_GLFWwindow* window)
 {
-    UNIMPLEMENTED_API
+    //UNIMPLEMENTED_API
 }
 
 GLFWbool _glfwWindowFocusedZomdroid(_GLFWwindow* window)
