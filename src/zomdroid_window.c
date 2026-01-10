@@ -3,6 +3,7 @@
 #include <string.h>
 #include "zomdroid.h"
 #include "zomdroid_globals.h"
+#include <android/log.h>
 
 #define NOOP
 #define UNIMPLEMENTED_API _glfwInputError(GLFW_FEATURE_UNIMPLEMENTED, "Zomdroid: %s not implemented", __func__);
@@ -16,7 +17,13 @@ static void fitToSurface(_GLFWwindow* window)
     window->zomdroid.height = mode.height;
 }
 
-
+static int envIntOrDefault(const char* name, int def)
+{
+    const char* v = getenv(name);
+    if (!v || !*v)
+        return def;
+    return atoi(v);
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////                       GLFW platform API                      //////
@@ -37,16 +44,25 @@ GLFWbool _glfwCreateWindowZomdroid(_GLFWwindow* window,
     fitToSurface(window);
     _glfw.zomdroid.window = window;
 
-    if ((g_zomdroid_renderer == GL4ES) || (g_zomdroid_renderer == NG_GL4ES)) {
+    _GLFWctxconfig local;                  // будет использоваться только для GL4ES/NG
+    const _GLFWctxconfig* refreshConfig = ctxconfig;
+
+    if ((g_zomdroid_renderer == GL4ES) || (g_zomdroid_renderer == NG_GL4ES))
+    {
+        local = *ctxconfig;                // копия, не правим оригинал
+        local.client = GLFW_OPENGL_ES_API;
+        local.major  = envIntOrDefault("ZOMDROID_GLES_MAJOR", 2);
+        local.minor  = envIntOrDefault("ZOMDROID_GLES_MINOR", 0);
+
+        // (опционально) лог для проверки что env реально дошли
+        __android_log_print(ANDROID_LOG_INFO, "ZomdroidGLFW",
+                            "Renderer=%d GLES_MAJOR=%d GLES_MINOR=%d",
+                            (int)g_zomdroid_renderer, local.major, local.minor);
 
         if (!_glfwInitEGL())
             return GLFW_FALSE;
 
-        _GLFWctxconfig* _ctxconfig = ctxconfig;
-        _ctxconfig->client = GLFW_OPENGL_ES_API;
-        _ctxconfig->major = atoi(getenv("ZOMDROID_GLES_MAJOR"));
-        _ctxconfig->minor = atoi(getenv("ZOMDROID_GLES_MINOR"));
-        if (!_glfwCreateContextEGL(window, _ctxconfig, fbconfig))
+        if (!_glfwCreateContextEGL(window, &local, fbconfig))
             return GLFW_FALSE;
 
     } else if (g_zomdroid_renderer == ZINK_OSMESA) {
@@ -63,7 +79,7 @@ GLFWbool _glfwCreateWindowZomdroid(_GLFWwindow* window,
             return GLFW_FALSE;
     }
 
-    if (!_glfwRefreshContextAttribs(window, ctxconfig))
+    if (!_glfwRefreshContextAttribs(window, refreshConfig))
         return GLFW_FALSE;
 
     return GLFW_TRUE;
