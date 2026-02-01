@@ -263,7 +263,8 @@ void _glfwRequestWindowAttentionZomdroid(_GLFWwindow* window)
 
 void _glfwHideWindowZomdroid(_GLFWwindow* window)
 {
-    UNIMPLEMENTED_API
+    (void)window;
+    // no-op on Android
 }
 
 void _glfwFocusWindowZomdroid(_GLFWwindow* window)
