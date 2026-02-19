@@ -344,6 +344,12 @@ static void processZomdroidEvent(ZomdroidEvent* event) {
             _glfwInputJoystickButton(js, e->button, e->is_pressed ? GLFW_PRESS : GLFW_RELEASE);
             break;
         }
+        case CHAR_INPUT: {
+            CharInputEvent* e = &event->charInput;
+            //LOGI("processZomdroidEvent CHAR_INPUT: codepoint=%u", e->codepoint);
+            _glfwInputChar(_glfw.zomdroid.window, e->codepoint, 0, GLFW_TRUE);
+            break;
+        }
     }
 }
 
