@@ -305,6 +305,11 @@ static void processZomdroidEvent(ZomdroidEvent* event) {
             _glfwInputMouseClick(_glfw.zomdroid.window, e->button, e->is_pressed ? GLFW_PRESS : GLFW_RELEASE, 0);
             break;
         }
+        case MOUSE_SCROLL: {
+            MouseScrollEvent* e = &event->mouseScroll;
+            _glfwInputScroll(_glfw.zomdroid.window, e->xoffset, e->yoffset);
+            break;
+        }
         case JOYSTICK_CONNECTED: {
             JoystickConnectedEvent* e = &event->joystickConnected;
             _GLFWjoystick* js = _glfwAllocJoystick(e->joystick_name, e->joystick_guid, e->axis_count,
