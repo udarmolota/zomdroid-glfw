@@ -269,7 +269,8 @@ void _glfwHideWindowZomdroid(_GLFWwindow* window)
 
 void _glfwFocusWindowZomdroid(_GLFWwindow* window)
 {
-    UNIMPLEMENTED_API
+    (void)window;
+    // no-op on Android — there is only one window, focus is implicit
 }
 
 GLFWbool _glfwWindowFocusedZomdroid(_GLFWwindow* window)
