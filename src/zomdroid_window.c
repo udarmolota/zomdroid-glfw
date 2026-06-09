@@ -217,7 +217,10 @@ void _glfwSetWindowResizableZomdroid(_GLFWwindow* window, GLFWbool enabled)
 
 void _glfwSetWindowDecoratedZomdroid(_GLFWwindow* window, GLFWbool enabled)
 {
-    UNIMPLEMENTED_API
+    // No-op on Android: the surface is always fullscreen/borderless, so there are no window
+    // decorations to toggle. PZ calls this via setBorderlessWindow() every launch; logging it as
+    // GLFW_FEATURE_UNIMPLEMENTED just spams the game log with a harmless "not implemented" error.
+    NOOP
 }
 
 void _glfwSetWindowFloatingZomdroid(_GLFWwindow* window, GLFWbool enabled)
