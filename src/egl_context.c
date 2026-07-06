@@ -34,6 +34,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <unistd.h>
+#include <dlfcn.h>
+#include <android/log.h>
 
 
 // Return a description of the specified EGL error
@@ -403,6 +405,47 @@ static void swapBuffersEGL(_GLFWwindow* window)
 
     if (_glfw.zomdroid.aNativeWindow == NULL) { return; }
 #endif
+
+    // --- DEBUG: context-vs-draw bisection ---------------------------------
+    // When ZOMDROID_DEBUG_RED_CLEAR is set, force a full-screen red clear into
+    // the default framebuffer (FBO 0) right before presenting. This tests
+    // whether the EGL surface/context/swap path is alive independently of game
+    // rendering (gl4es / shaders / FBO binding):
+    //   red screen   -> surface + context + swap are alive, dig into drawing
+    //   black screen -> the break is earlier (EGL config/context/surface/swap)
+    // Native GLES entry points are resolved via dlsym so the clear bypasses
+    // gl4es entirely. Inert unless the env var is present; remove after diagnosis.
+    if (getenv("ZOMDROID_DEBUG_RED_CLEAR")) {
+        static int rc_init = 0;
+        static void (*rc_glBindFramebuffer)(unsigned int, unsigned int) = NULL;
+        static void (*rc_glClearColor)(float, float, float, float) = NULL;
+        static void (*rc_glClear)(unsigned int) = NULL;
+        static const unsigned char* (*rc_glGetString)(unsigned int) = NULL;
+        if (!rc_init) {
+            rc_init = 1;
+            void* gles = dlopen("libGLESv2.so", RTLD_NOW | RTLD_GLOBAL);
+            if (gles) {
+                rc_glBindFramebuffer = dlsym(gles, "glBindFramebuffer");
+                rc_glClearColor      = dlsym(gles, "glClearColor");
+                rc_glClear           = dlsym(gles, "glClear");
+                rc_glGetString       = dlsym(gles, "glGetString");
+            }
+            // Log what the real (native) context reports — answers the
+            // "which GLES version actually got created" question.
+            const char* ver = (rc_glGetString) ? (const char*)rc_glGetString(0x1F02 /*GL_VERSION*/) : NULL;
+            const char* ren = (rc_glGetString) ? (const char*)rc_glGetString(0x1F01 /*GL_RENDERER*/) : NULL;
+            __android_log_print(ANDROID_LOG_INFO, "ZomdroidRedClear",
+                "init: gles=%p bind=%p color=%p clear=%p | GL_VERSION='%s' GL_RENDERER='%s'",
+                gles, (void*)rc_glBindFramebuffer, (void*)rc_glClearColor,
+                (void*)rc_glClear, ver ? ver : "(null)", ren ? ren : "(null)");
+        }
+        if (rc_glBindFramebuffer && rc_glClearColor && rc_glClear) {
+            rc_glBindFramebuffer(0x8D40 /*GL_FRAMEBUFFER*/, 0);
+            rc_glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+            rc_glClear(0x00004000 /*GL_COLOR_BUFFER_BIT*/);
+        }
+    }
+    // ----------------------------------------------------------------------
 
     eglSwapBuffers(_glfw.egl.display, window->context.egl.surface);
 }
