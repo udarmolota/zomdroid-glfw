@@ -39,6 +39,13 @@ static void makeContextCurrentOSMesa(_GLFWwindow* window)
 {
 #if defined(_GLFW_ZOMDROID)
     if (window) {
+        // The surface can be torn down (Android backgrounding it, a system dialog, etc.) right
+        // between swapBuffersOSMesa() copying a NULL g_zomdroid_surface.native_window in (see its
+        // is_dirty branch, which calls straight into this function) and this call — without the
+        // guard, ANativeWindow_setBuffersGeometry(NULL, ...) SIGSEGVs and takes the whole JVM down.
+        // Same guard already used a few lines below in swapBuffersOSMesa() and in egl_context.c.
+        if (_glfw.zomdroid.aNativeWindow == NULL) { return; }
+
         ANativeWindow_setBuffersGeometry(_glfw.zomdroid.aNativeWindow, 0, 0, WINDOW_FORMAT_RGBA_8888);
         ANativeWindow_Buffer* buffer = _glfw.zomdroid.aNativeWindowBuffer;
         if (ANativeWindow_lock(_glfw.zomdroid.aNativeWindow, buffer, NULL) != 0) {
