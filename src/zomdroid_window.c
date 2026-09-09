@@ -8,6 +8,10 @@
 #define NOOP
 #define UNIMPLEMENTED_API _glfwInputError(GLFW_FEATURE_UNIMPLEMENTED, "Zomdroid: %s not implemented", __func__);
 
+// Defined in egl_context.c. When set before _glfwInitEGL(), GLFW loads its EGL entry points
+// from that library instead of the system libEGL.so.
+extern char const* _glfw_egl_library;
+
 
 static void fitToSurface(_GLFWwindow* window)
 {
@@ -47,7 +51,8 @@ GLFWbool _glfwCreateWindowZomdroid(_GLFWwindow* window,
     _GLFWctxconfig local;                  // будет использоваться только для GL4ES/NG
     const _GLFWctxconfig* refreshConfig = ctxconfig;
 
-    if ((g_zomdroid_renderer == GL4ES) || (g_zomdroid_renderer == NG_GL4ES))
+    if ((g_zomdroid_renderer == GL4ES) || (g_zomdroid_renderer == NG_GL4ES)
+        || (g_zomdroid_renderer == MOBILEGLUES_EXPERIMENTAL))
     {
         local = *ctxconfig;                // копия, не правим оригинал
         local.client = GLFW_OPENGL_ES_API;
@@ -58,6 +63,14 @@ GLFWbool _glfwCreateWindowZomdroid(_GLFWwindow* window,
         __android_log_print(ANDROID_LOG_INFO, "ZomdroidGLFW",
                             "Renderer=%d GLES_MAJOR=%d GLES_MINOR=%d",
                             (int)g_zomdroid_renderer, local.major, local.minor);
+
+        if (g_zomdroid_renderer == MOBILEGLUES_EXPERIMENTAL) {
+            // MobileGlues keeps its per-context state in records made by its own
+            // eglCreateContext; a context created through the system libEGL is invisible
+            // to it. Route GLFW's whole EGL layer through the renderer library, which
+            // forwards to the system EGL underneath.
+            _glfw_egl_library = "libMobileGluesZomDroid.so";
+        }
 
         if (!_glfwInitEGL())
             return GLFW_FALSE;
