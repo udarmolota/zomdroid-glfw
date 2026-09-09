@@ -525,6 +525,7 @@ GLFWbool _glfwInitEGL(void)
     int i;
     EGLint* attribs = NULL;
     const char* extensions;
+    const char* loaded = NULL;   // soname the EGL handle actually came from
     const char* sonames[] =
     {
 #if defined(_GLFW_EGL_LIBRARY)
@@ -550,6 +551,8 @@ GLFWbool _glfwInitEGL(void)
     if (_glfw_egl_library)
     {
         _glfw.egl.handle = _glfwPlatformLoadModuleUTF8(_glfw_egl_library);
+        if (_glfw.egl.handle)
+            loaded = _glfw_egl_library;
     }
     if (!_glfw.egl.handle)
     {
@@ -557,7 +560,10 @@ GLFWbool _glfwInitEGL(void)
         {
             _glfw.egl.handle = _glfwPlatformLoadModule(sonames[i]);
             if (_glfw.egl.handle)
+            {
+                loaded = sonames[i];
                 break;
+            }
         }
     }
 
@@ -567,7 +573,15 @@ GLFWbool _glfwInitEGL(void)
         return GLFW_FALSE;
     }
 
-    _glfw.egl.prefix = (strncmp(sonames[i], "lib", 3) == 0);
+    // The "lib" prefix drives client-library selection below, so derive it from the
+    // name that was actually loaded: with _glfw_egl_library set the soname loop never
+    // runs and i is uninitialized, so sonames[i] read garbage off the stack. Basename,
+    // so an absolute path in _glfw_egl_library still answers correctly.
+    {
+        const char* base = strrchr(loaded, '/');
+        base = base ? base + 1 : loaded;
+        _glfw.egl.prefix = (strncmp(base, "lib", 3) == 0);
+    }
 
     _glfw.egl.GetConfigAttrib = (PFN_eglGetConfigAttrib)
         _glfwPlatformGetModuleSymbol(_glfw.egl.handle, "eglGetConfigAttrib");
