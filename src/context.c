@@ -26,6 +26,7 @@
 //========================================================================
 
 #include "internal.h"
+#include "zomdroid_globals.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -660,6 +661,8 @@ GLFWAPI void glfwSwapBuffers(GLFWwindow* handle)
     }
 
     window->context.swapBuffers(window);
+    // Every renderer presents through here, so this is the true on-screen frame rate.
+    atomic_fetch_add_explicit(&g_zomdroid_presented_frames, 1, memory_order_relaxed);
 }
 
 GLFWAPI void glfwSwapInterval(int interval)
