@@ -335,6 +335,10 @@ static void processZomdroidEvent(ZomdroidEvent* event) {
             JoystickConnectedEvent* e = &event->joystickConnected;
             _GLFWjoystick* js = _glfwAllocJoystick(e->joystick_name, e->joystick_guid, e->axis_count,
                                          e->button_count, e->hat_count);
+            if (!js) {
+                _glfwInputError(GLFW_PLATFORM_ERROR, "Failed to process event: no free joystick slot");
+                return;
+            }
             int jid = (int)(js - _glfw.joysticks);
             if (jid != GLFW_JOYSTICK_1) {
                 // zomdroid only supports a single joystick
@@ -345,9 +349,14 @@ static void processZomdroidEvent(ZomdroidEvent* event) {
             _glfwInputJoystick(js, GLFW_CONNECTED);
             break;
         }
+        // The slot is fixed at GLFW_JOYSTICK_1, but it only has axis/button/hat arrays once a
+        // JOYSTICK_CONNECTED event has allocated them. A pad that is already on when the game
+        // starts can have input queued ahead of (or without) that event; writing into the
+        // unallocated arrays was a NULL store in _glfwInputJoystickAxis at the first pollEvents
+        // (1.5.0v3, Galaxy A56). Input for a slot that is not connected is dropped instead.
         case JOYSTICK_DISCONNECTED: {
-            JoystickDisconnectedEvent* e = &event->joystickDisconnected;
             _GLFWjoystick* js = &_glfw.joysticks[GLFW_JOYSTICK_1];
+            if (!js->connected) break;
             _glfwInputJoystick(js, GLFW_DISCONNECTED);
             _glfwFreeJoystick(js);
             break;
@@ -355,18 +364,21 @@ static void processZomdroidEvent(ZomdroidEvent* event) {
         case JOYSTICK_AXIS: {
             JoystickAxisEvent* e = &event->joystickAxis;
             _GLFWjoystick* js = &_glfw.joysticks[GLFW_JOYSTICK_1];
+            if (!js->connected || e->axis < 0 || e->axis >= js->axisCount) break;
             _glfwInputJoystickAxis(js, e->axis, e->state);
             break;
         }
         case JOYSTICK_DPAD: {
             JoystickDpadEvent* e = &event->joystickDpad;
             _GLFWjoystick* js = &_glfw.joysticks[GLFW_JOYSTICK_1];
+            if (!js->connected || e->dpad < 0 || e->dpad >= js->hatCount) break;
             _glfwInputJoystickHat(js, e->dpad, e->state);
             break;
         }
         case JOYSTICK_BUTTON: {
             JoystickButtonEvent* e = &event->joystickButton;
             _GLFWjoystick* js = &_glfw.joysticks[GLFW_JOYSTICK_1];
+            if (!js->connected || e->button < 0 || e->button >= js->buttonCount) break;
             _glfwInputJoystickButton(js, e->button, e->is_pressed ? GLFW_PRESS : GLFW_RELEASE);
             break;
         }
