@@ -291,7 +291,11 @@ void _glfwFocusWindowZomdroid(_GLFWwindow* window)
 
 GLFWbool _glfwWindowFocusedZomdroid(_GLFWwindow* window)
 {
-    UNIMPLEMENTED_API
+    (void)window;
+    // Not an unimplemented query: on Android there is one window and it always has focus (see
+    // _glfwFocusWindowZomdroid). Reporting it as unimplemented made LWJGL print an error with a
+    // Java stack trace for every call, and Build 42.21 asks on every render pass
+    // (Display.processMessages) - 15,000 traces a minute into native.log and the game's log.
     return GLFW_TRUE;
 }
 
