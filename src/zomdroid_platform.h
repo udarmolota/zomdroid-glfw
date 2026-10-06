@@ -20,8 +20,8 @@ typedef struct _GLFWlibraryZomdroid
     int aNativeWindowWidth;
     int aNativeWindowHeight;
     ANativeWindow_Buffer* aNativeWindowBuffer;
-    int             cursorX;
-    int             cursorY;
+    double          cursorX;
+    double          cursorY;
     char*           clipboardString;
     _GLFWwindow*    window;
 } _GLFWlibraryZomdroid;

@@ -339,6 +339,10 @@ static void processZomdroidEvent(ZomdroidEvent* event) {
                 _glfwInputCursorPos(window, e->x, e->y);
             lastX = e->x;
             lastY = e->y;
+            // Where glfwGetCursorPos answers outside the disabled mode: a caller that polls (Viewpoint's
+            // ImGui settings window) instead of using the callback must see the cursor move too.
+            _glfw.zomdroid.cursorX = e->x;
+            _glfw.zomdroid.cursorY = e->y;
             break;
         }
         case MOUSE_BUTTON: {
@@ -452,8 +456,8 @@ void _glfwGetCursorPosZomdroid(_GLFWwindow* window, double* xpos, double* ypos)
 
 void _glfwSetCursorPosZomdroid(_GLFWwindow* window, double x, double y)
 {
-    _glfw.zomdroid.cursorX = (int) x;
-    _glfw.zomdroid.cursorY = (int) y;
+    _glfw.zomdroid.cursorX = x;
+    _glfw.zomdroid.cursorY = y;
 }
 
 void _glfwSetCursorModeZomdroid(_GLFWwindow* window, int mode)
