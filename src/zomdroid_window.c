@@ -256,15 +256,25 @@ void _glfwSetWindowOpacityZomdroid(_GLFWwindow* window, float opacity)
     UNIMPLEMENTED_API
 }
 
+// A first-person mod (Project Viewpoint) holds the mouse by disabling the cursor and asking for raw
+// motion, then turns the view by the cursor's movement. The game itself only ever disables the
+// cursor ("Lock cursor to window") and never asks for raw motion, so only the pair means a capture.
+// While it lasts the launcher's on-screen mouse stops clamping the cursor to the screen.
+static void updateMouseCapture(_GLFWwindow* window)
+{
+    atomic_store_explicit(&g_zomdroid_mouse_captured,
+                          window->cursorMode == GLFW_CURSOR_DISABLED && window->rawMouseMotion,
+                          memory_order_relaxed);
+}
+
 void _glfwSetRawMouseMotionZomdroid(_GLFWwindow *window, GLFWbool enabled)
 {
-    UNIMPLEMENTED_API
+    updateMouseCapture(window);
 }
 
 GLFWbool _glfwRawMouseMotionSupportedZomdroid(void)
 {
-    UNIMPLEMENTED_API
-    return GLFW_FALSE;
+    return GLFW_TRUE;
 }
 
 void _glfwShowWindowZomdroid(_GLFWwindow* window)
@@ -318,7 +328,17 @@ static void processZomdroidEvent(ZomdroidEvent* event) {
         }
         case CURSOR_POS: {
             CursorPosEvent* e = &event->cursorPos;
-            _glfwInputCursorPos(_glfw.zomdroid.window, e->x, e->y);
+            static double lastX, lastY;
+            _GLFWwindow* window = _glfw.zomdroid.window;
+            // A captured cursor (see updateMouseCapture) moves by deltas from wherever the mod put
+            // it: the mod recentres it on capture, and an absolute position would jerk the view.
+            if (atomic_load_explicit(&g_zomdroid_mouse_captured, memory_order_relaxed))
+                _glfwInputCursorPos(window, window->virtualCursorPosX + (e->x - lastX),
+                                    window->virtualCursorPosY + (e->y - lastY));
+            else
+                _glfwInputCursorPos(window, e->x, e->y);
+            lastX = e->x;
+            lastY = e->y;
             break;
         }
         case MOUSE_BUTTON: {
@@ -438,7 +458,11 @@ void _glfwSetCursorPosZomdroid(_GLFWwindow* window, double x, double y)
 
 void _glfwSetCursorModeZomdroid(_GLFWwindow* window, int mode)
 {
-    NOOP
+    // Raw motion belongs to one capture. A mod that releases the cursor leaves it switched on, and
+    // the game's own lock-cursor mode would then inherit a capture it never asked for.
+    if (mode != GLFW_CURSOR_DISABLED)
+        window->rawMouseMotion = GLFW_FALSE;
+    updateMouseCapture(window);
 }
 
 GLFWbool _glfwCreateCursorZomdroid(_GLFWcursor* cursor,
